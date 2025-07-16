@@ -302,7 +302,7 @@ class BrowserManager:
 
             await browser_instance.page.goto(
                 "https://www.midasbuy.com/midasbuy/us/redeem/pubgm",
-                wait_until="domcontentloaded", timeout=30000
+                wait_until="domcontentloaded", timeout=100000
             )
 
             selectors = [
@@ -508,7 +508,7 @@ class BrowserManager:
                 }
             """)
 
-            await browser.page.reload(wait_until="domcontentloaded", timeout=30000)
+            await browser.page.reload(wait_until="domcontentloaded", timeout=100000)
             await self._prepare_browser(browser)
             print(f"✅ تم إعادة تجهيز المتصفح {browser.id} وهو جاهز للطلب التالي")
 
