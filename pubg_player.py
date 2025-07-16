@@ -680,7 +680,7 @@ async def initialize_pubg_system():
 
     try:
         print("🔧 تهيئة مدير المتصفحات للبحث عن لاعبي PUBG...")
-        _browser_manager = BrowserManager(browser_count=10, headless=False)
+        _browser_manager = BrowserManager(browser_count=10, headless=true)
 
         if not await _browser_manager.initialize():
             print("❌ فشل في تهيئة مدير المتصفحات!")
