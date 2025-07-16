@@ -215,7 +215,19 @@ class BrowserManager:
                 browser_args.extend([
                     '--disable-gpu',
                     '--disable-images',
-                    '--disable-javascript-harmony-shipping'
+                    '--disable-javascript-harmony-shipping',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-features=TranslateUI',
+                    '--disable-ipc-flooding-protection',
+                    '--disable-default-apps',
+                    '--disable-extensions',
+                    '--disable-plugins',
+                    '--disable-sync',
+                    '--no-first-run',
+                    '--no-default-browser-check',
+                    '--disable-background-networking'
                 ])
 
             browser_instance.browser = await self.playwright.chromium.launch(
@@ -680,7 +692,7 @@ async def initialize_pubg_system():
 
     try:
         print("🔧 تهيئة مدير المتصفحات للبحث عن لاعبي PUBG...")
-        _browser_manager = BrowserManager(browser_count=10, headless=true)
+        _browser_manager = BrowserManager(browser_count=10, headless=True)
 
         if not await _browser_manager.initialize():
             print("❌ فشل في تهيئة مدير المتصفحات!")
