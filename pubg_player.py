@@ -152,9 +152,9 @@ class SuperFastFilter:
 # ===== مدير المتصفحات =====
 
 class BrowserManager:
-    """مدير المتصفحات المتوازية - 5 متصفحات دائمة"""
+    """مدير المتصفحات المتوازية - 3 متصفحات مستقلة"""
     
-    def __init__(self, browser_count: int = 10, headless: bool = False):
+    def __init__(self, browser_count: int = 3, headless: bool = False):
         self.browser_count = browser_count
         self.headless = headless
         self.browsers: List[BrowserInstance] = []
@@ -195,6 +195,7 @@ class BrowserManager:
             browser_instance.state = BrowserState.INITIALIZING
 
             # Browser args optimized for both headless and non-headless modes
+            # كل متصفح له معرف فريد لضمان الاستقلالية التامة
             browser_args = [
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
@@ -207,7 +208,12 @@ class BrowserManager:
                 '--disable-plugins',
                 '--aggressive-cache-discard',
                 '--memory-pressure-off',
-                '--max_old_space_size=4096'
+                '--max_old_space_size=4096',
+                f'--user-data-dir=/tmp/chrome-{browser_instance.id}',  # مجلد منفصل لكل متصفح
+                f'--profile-directory=Profile-{browser_instance.id}',   # ملف تعريف منفصل
+                '--disable-shared-workers',                             # تعطيل العمال المشتركين
+                '--disable-session-crashed-bubble',                     # تعطيل رسائل الأعطال المشتركة
+                '--disable-background-mode'                             # تعطيل الوضع الخلفي المشترك
             ]
 
             # Add headless-specific optimizations only in headless mode
@@ -230,14 +236,19 @@ class BrowserManager:
                     '--disable-background-networking'
                 ])
 
+            # إنشاء متصفح مستقل تماماً مع معرف فريد
             browser_instance.browser = await self.playwright.chromium.launch(
                 headless=self.headless,
                 args=browser_args
             )
 
+            # إنشاء context مستقل لكل متصفح مع إعدادات منفصلة
             browser_instance.context = await browser_instance.browser.new_context(
                 viewport={'width': 1280, 'height': 720},
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                user_agent=f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Browser-{browser_instance.id}',
+                ignore_https_errors=True,
+                java_script_enabled=True,
+                bypass_csp=True
             )
 
             # إضافة الكوكيز المطلوبة لموقع MidasBuy
@@ -692,7 +703,7 @@ async def initialize_pubg_system():
 
     try:
         print("🔧 تهيئة مدير المتصفحات للبحث عن لاعبي PUBG...")
-        _browser_manager = BrowserManager(browser_count=10, headless=True)
+        _browser_manager = BrowserManager(browser_count=3, headless=True)
 
         if not await _browser_manager.initialize():
             print("❌ فشل في تهيئة مدير المتصفحات!")

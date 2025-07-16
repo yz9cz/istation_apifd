@@ -65,14 +65,14 @@ async def lifespan(app: FastAPI):
     _request_semaphore = Semaphore(MAX_CONCURRENT_REQUESTS)
     print(f"⚡ تم إعداد Connection Pool - الحد الأقصى: {MAX_CONCURRENT_REQUESTS} طلب متزامن")
 
-    # تهيئة نظام PUBG مع عدد أكبر من المتصفحات
+    # تهيئة نظام PUBG مع 3 متصفحات مستقلة
     print("🎮 تهيئة نظام البحث عن لاعبي PUBG...")
     try:
         success = await initialize_pubg_system()
         if success:
             print("✅ تم تهيئة نظام PUBG بنجاح!")
         else:
-            print("⚠️ فشل في تهيئة نظام PUBG - سيعمل النظام بدون متصفحات جاهزة")
+            print("⚠️ فشل في تهيئة نظام PUBG - سيعمل النظام بدون المتصفحات الثلاثة")
     except Exception as e:
         print(f"❌ خطأ في تهيئة نظام PUBG: {e}")
 
@@ -146,7 +146,15 @@ async def get_player_name_async(player_id: str, game_type: str = "pubg") -> Opti
                     # التحقق من بنية الاستجابة الصحيحة
                     if data.get('status') == 200 and data.get('msg') == 'id_found':
                         player_data = data.get('data', {})
-                        return player_data.get('nickname')
+                        player_name = player_data.get('nickname')
+                        print(f"✅ Free Fire Player Found: {player_name}")
+                        return player_name
+                    else:
+                        print(f"❌ Free Fire Player Not Found - Status: {data.get('status')}, Msg: {data.get('msg')}")
+                else:
+                    print(f"❌ Free Fire Request Failed: {raw_response}")
+            else:
+                print(f"❌ Free Fire Invalid Response: {raw_response}")
             return None
 
         elif game_type in ["jawaker", "jw"]:
@@ -160,7 +168,15 @@ async def get_player_name_async(player_id: str, game_type: str = "pubg") -> Opti
                     # بنية Jawaker مختلفة - البيانات في user.login
                     user_data = data.get('user', {})
                     if user_data:
-                        return user_data.get('login')  # اسم اللاعب في login
+                        player_name = user_data.get('login')  # اسم اللاعب في login
+                        print(f"✅ Jawaker Player Found: {player_name}")
+                        return player_name
+                    else:
+                        print(f"❌ Jawaker No User Data: {data}")
+                else:
+                    print(f"❌ Jawaker Request Failed: {raw_response}")
+            else:
+                print(f"❌ Jawaker Invalid Response: {raw_response}")
             return None
 
         elif game_type in ["bigolive", "bigo"]:
@@ -174,7 +190,17 @@ async def get_player_name_async(player_id: str, game_type: str = "pubg") -> Opti
                     if outer_data.get('success'):
                         inner_data = outer_data.get('data', {})
                         if inner_data.get('matched') and inner_data.get('exists'):
-                            return inner_data.get('nickname')
+                            player_name = inner_data.get('nickname')
+                            print(f"✅ BigOLive Player Found: {player_name}")
+                            return player_name
+                        else:
+                            print(f"❌ BigOLive Player Not Found - Matched: {inner_data.get('matched')}, Exists: {inner_data.get('exists')}")
+                    else:
+                        print(f"❌ BigOLive Inner Request Failed: {outer_data}")
+                else:
+                    print(f"❌ BigOLive Request Failed: {raw_response}")
+            else:
+                print(f"❌ BigOLive Invalid Response: {raw_response}")
             return None
 
         elif game_type in ["poppolive", "poppo"]:
@@ -188,7 +214,17 @@ async def get_player_name_async(player_id: str, game_type: str = "pubg") -> Opti
                     if outer_data.get('success'):
                         inner_data = outer_data.get('data', {})
                         if inner_data.get('matched') and inner_data.get('exists'):
-                            return inner_data.get('nickname')
+                            player_name = inner_data.get('nickname')
+                            print(f"✅ Poppo Live Player Found: {player_name}")
+                            return player_name
+                        else:
+                            print(f"❌ Poppo Live Player Not Found - Matched: {inner_data.get('matched')}, Exists: {inner_data.get('exists')}")
+                    else:
+                        print(f"❌ Poppo Live Inner Request Failed: {outer_data}")
+                else:
+                    print(f"❌ Poppo Live Request Failed: {raw_response}")
+            else:
+                print(f"❌ Poppo Live Invalid Response: {raw_response}")
             return None
 
         else:
@@ -197,6 +233,7 @@ async def get_player_name_async(player_id: str, game_type: str = "pubg") -> Opti
     except Exception as e:
         print(f"❌ خطأ في معالجة استجابة {game_type}: {e}")
         print(f"📋 Raw response: {raw_response}")
+        print(f"🔍 Exception details: {type(e).__name__}: {str(e)}")
         return None
 
 def get_player_name(player_id: str, game_type: str = "pubg") -> Optional[str]:
@@ -230,7 +267,8 @@ def get_player_name(player_id: str, game_type: str = "pubg") -> Optional[str]:
                     data = raw_response.get('data', {})
                     if data.get('status') == 200 and data.get('msg') == 'id_found':
                         player_data = data.get('data', {})
-                        return player_data.get('nickname')
+                        player_name = player_data.get('nickname')
+                        return player_name
             return None
 
         elif game_type in ["jawaker", "jw"]:
@@ -312,11 +350,14 @@ async def get_player_name_endpoint(request: PlayerRequest):
             return PlayerResponse(player_name=None)
         
         # جلب اسم اللاعب
+        print(f"🔍 Processing request - Player ID: {request.player_id.strip()}, Game: {request.game_type}")
         player_name = await get_player_name_async(request.player_id.strip(), request.game_type)
-        
+        print(f"📤 Returning response - Player Name: {player_name}")
+
         return PlayerResponse(player_name=player_name)
     
-    except Exception:
+    except Exception as e:
+        print(f"❌ Error in endpoint: {e}")
         return PlayerResponse(player_name=None)
 
 @app.get("/health")
@@ -340,7 +381,7 @@ async def get_performance_stats():
             "status": "success",
             "connection_pool_stats": stats,
             "max_concurrent_requests": MAX_CONCURRENT_REQUESTS,
-            "pubg_browsers": 10,
+            "pubg_browsers": 3,
             "other_games_concurrent_limit": 10
         }
     except Exception as e:
@@ -364,7 +405,7 @@ if __name__ == "__main__":
     print('  BigOLive: {"player_id": "988621429", "game_type": "bigolive"}')
     print('  Poppo Live: {"player_id": "8218218", "game_type": "poppolive"}')
     print("\n✅ الخادم يرجع أسماء اللاعبين فقط")
-    print("🔧 يستخدم نظام متصفحات متوازية للبحث عن لاعبي PUBG")
+    print("🔧 يستخدم 3 متصفحات مستقلة للبحث عن لاعبي PUBG")
 
     # إعدادات Uvicorn محسنة للأداء العالي
     uvicorn.run(
